@@ -3,7 +3,7 @@
     <div class="row">
         <div class="col-md-offset-2 col-md-8 page-heading">
             <h1>Войти в панель управления</h1>
-            <div class="alert alert-warning" role="alert">Эта функция предназначена только для администратора сайта!</div>
+            <?php if ($error) echo "<div class=\"alert alert-danger\" role=\"alert\">Логин или пароль неверны!</div>"; ?>
         </div>
     </div>
 
@@ -11,9 +11,9 @@
         <div class="col-md-offset-2 col-md-8">
             <form role="form" method="POST" action="/login" class="form-horizontal">
                 <div class="form-group">
-                    <label for="email-input" class="col-sm-2 control-label">Email</label>
+                    <label for="email-input" class="col-sm-2 control-label">Логин</label>
                     <div class="col-sm-10">
-                        <input type="email" class="form-control" id="email-input" name="login" placeholder="Логин (email)">
+                        <input type="text" class="form-control" id="email-input" name="login" placeholder="Логин">
                     </div>
                 </div>
 

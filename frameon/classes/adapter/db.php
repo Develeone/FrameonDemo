@@ -1,60 +1,87 @@
 <?php
 
 class SqlSelectBuilder {
-	public $what = '';
-	public $from = '';
-	public $where = array();
+    public $what = '';
+    public $table = '';
+    public $where = array();
 
-	public function __construct () {
-		$this->what = func_get_args();
-		$this->what = $this->what[0];
+    public function __construct () {
+        $this->what = func_get_args();
+        $this->what = $this->what[0];
 
-		if ((count($this->what) == 0) || ((count($this->what) == 1) && ($this->what[0] == "*")))
-			$this->what = "*";
+        if ((count($this->what) == 0) || ((count($this->what) == 1) && ($this->what[0] == "*")))
+            $this->what = "*";
 
-		return $this;
-	}
-
-	// Для перегрузки методов используем их модификацию вызова
-	public function __call($methodName, $arguments = array()) {
-		$methodName = "_".$methodName;
-
-		if (!method_exists($this, $methodName))
-			throw new Except('Ошибка в контроллере '.get_called_class().'. Отсутствует метод '.$methodName.'!');
-		else
-
-		if ($methodName == "_where")
-			$arguments = array($arguments[0], "=", $arguments[1]);
-
-		return call_user_func_array(array($this, $methodName), $arguments);
+        return $this;
     }
 
-	public function from ($table_name) {
-		$this->from = $table_name;
-		return $this;
-	}
+    // Для перегрузки методов используем их модификацию вызова
+    public function __call($methodName, $arguments = array()) {
+        $methodName = "_".$methodName;
 
-	public function _where ($field, $compare, $value) {
-		array_push(
-			$this->where,
-			array(
-				"field" => $field,
-				"compare" => $compare,
-				"value" => $value
-			)
-		);
-		
-		return $this;
-	}
+        if (!method_exists($this, $methodName))
+            throw new Except('Ошибка в контроллере '.get_called_class().'. Отсутствует метод '.$methodName.'!');
+        else
 
-	public function get () {
-		return DB::runSqlSelectBuilder($this);
-	}
+            if ($methodName == "_where")
+                $arguments = array($arguments[0], "=", $arguments[1]);
 
-	public function one () {
-		$data = DB::runSqlSelectBuilder($this);
-		return $data[0];
-	}
+        return call_user_func_array(array($this, $methodName), $arguments);
+    }
+
+    public function from ($table_name) {
+        $this->table = $table_name;
+        return $this;
+    }
+
+    public function _where ($field, $compare, $value) {
+        array_push(
+            $this->where,
+            array(
+                "field" => $field,
+                "compare" => $compare,
+                "value" => $value
+            )
+        );
+
+        return $this;
+    }
+
+    public function get () {
+        return DB::runSqlSelectBuilder($this);
+    }
+
+    public function count () {
+        $this->what = "COUNT(*)";
+        return DB::runSqlSelectBuilder($this)[0]->data["COUNT(*)"];
+    }
+
+    public function one () {
+        Die("Требуется доработка функции, заменить [0] на LIMIT");
+        $data = DB::runSqlSelectBuilder($this);
+        return $data[0];
+    }
+}
+
+class SqlInsertBuilder {
+    public $what = null;
+    public $table = '';
+
+    public function __construct () {
+        $this->what = func_get_args();
+        $this->what = $this->what[0][0];
+
+        return $this;
+    }
+
+    public function into ($table) {
+        $this->table = $table;
+        return $this;
+    }
+
+    public function set () {
+        return DB::runSqlInsertBuilder($this);
+    }
 }
 
 /**
@@ -127,8 +154,6 @@ class DB
 {
 	private static $conn;
 	private static $stats;
-	private static $emode;
-	private static $exname;
 	private static $pfx;
 
 	const RESULT_ASSOC = MYSQLI_ASSOC;
@@ -139,7 +164,7 @@ class DB
 	private function __construct () {}
 	protected function __clone() {}
 
-	static public function getInstance() {
+	public static function getInstance() {
 		if (is_null(self::$_instance)) {
 			self::$_instance = new self();
 		}
@@ -148,9 +173,6 @@ class DB
 
 	public static function connect($config)
 	{
-		self::$emode  = $config->errmode;
-		self::$exname = $opt['exception'];
-
 		@self::$conn = mysqli_connect($config->host, $config->user, $config->password, $config->dbname);
 		if (!self::$conn)
 		{
@@ -165,22 +187,34 @@ class DB
 		unset($config); // I am paranoid
 	}
 
-	public function runSqlSelectBuilder ($SqlBuilder) {
-		return self::_select($SqlBuilder->what, $SqlBuilder->from, $SqlBuilder->where);
-	}
+    public static function runSqlSelectBuilder ($SqlBuilder) {
+        return self::_select($SqlBuilder->what, $SqlBuilder->table, $SqlBuilder->where);
+    }
 
-	public function select () {
-		return new SqlSelectBuilder(func_get_args());
-	}
+    public static function runSqlInsertBuilder ($SqlBuilder) {
+        return self::_insert($SqlBuilder->what, $SqlBuilder->table);
+    }
 
-	public function _select ($what, $from, $where = null) {
-		$what_placeholder = $what === "*" ? '?p' : '?f';
+    public static function select () {
+        return new SqlSelectBuilder(func_get_args());
+    }
 
-		if ($where == null)
-			return self::getAll('SELECT '.$what_placeholder.' FROM ?n', $what, $from);
-		else
-			return self::getAll('SELECT '.$what_placeholder.' FROM ?n WHERE ?w', $what, $from, $where);
-	}
+    public static function insert () {
+        return new SqlInsertBuilder(func_get_args());
+    }
+
+    public function _select ($what, $from, $where = null) {
+        $what_placeholder = ($what === "*" || $what === "COUNT(*)") ? '?p' : '?f';
+
+        if ($where == null)
+            return self::getAll('SELECT '.$what_placeholder.' FROM ?n', $what, $from);
+        else
+            return self::getAll('SELECT '.$what_placeholder.' FROM ?n WHERE ?w', $what, $from, $where);
+    }
+
+    public function _insert ($what, $table) {
+        return self::query('INSERT INTO ?n SET ?u', $table, $what);
+    }
 
 	/**
 	 * Conventional function to run a query with placeholders. A mysqli_query wrapper with placeholders support
@@ -789,148 +823,3 @@ class DB
 		}
 	}
 }
-
-/**
- @name Database Wrapper for mysql
- 
-class db {
-	private $connect_id = null;
-	private $resource_id = null;
-	private $sql = null;
-	private $pfx = '';
-	public $debug = true;
-	
-	function connect ($config) {
-		self::$connect_id = mysql_connect($config->host, $config->user, $config->password);
-
-		if (!self::$connect_id) {
-			self::$error();
-			return false;
-		}
-
-		if (mysql_select_db($config->dbname, self::$connect_id)) {
-			if (!isset($config->charset)) {
-				$config->charset = 'utf8';
-			}
-
-			self::$query("SET NAMES '".$config->charset."'")->
-				query("SET CHARSET '".$config->charset."'")->
-				query("SET CHARACTER SET '".$config->charset."'")->
-				query("SET SESSION collation_connection = '".$config->charset."_general_ci'");
-		}
-
-		self::$pfx = $config->dbprefix;
-	}
-
-	function query ($sql) {
-		self::$sql = str_ireplace('#__', self::$pfx, $sql);
-		self::$resource_id = mysql_query(self::$sql, self::$connect_id);
-		if (self::$debug and !self::$resource_id) {
-			self::$error();
-		}
-		return $this;
-	}
-
-	function select (fields) {
-		
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	function row($field = false){
-		if (self::$resource_id and $row = mysql_fetch_object(self::$resource_id)) {
-			return $field ? $row[$field] : $row;
-		}
-		return null;
-	}
-	function item($table, $where = '1', $fields = '*', $field = false){
-		$item = self::$query('select '.$fields.' from '.$table.' where '.$where)->row($field);
-		return $item; 
-	}
-	function items($table, $where = '1', $fields = '*', $field = false, $key = false){
-		$items = self::$query('select '.$fields.' from '.$table.' where '.$where)->rows($field, $key);
-		return $items; 
-	}
-	
-	function rows($field = false, $key = false) {
-		$rows = array();
-		while($row = self::$row($field)) {
-			if (!$key) {
-				$rows[] = $row;
-			} else {
-				$rows[$row[$key]] = $row;
-			}
-		}
-		return $rows;
-	}
-	function exists($table, $id, $field = 'id') {
-		$pid = self::$query('select '.$field.' from '.$table.' where '.$field.'='.self::$__($id).' limit 1')->row($field);
-		return $pid;
-	}
-	function cnt() {
-		return mysql_affected_rows(self::$connect_id);
-	}
-	private static function _arrayKeysToSet($values){
-		$ret='';
-		if (is_array($values) or is_object($values)){
-			foreach($values as $key=>$value){
-			  if(!empty($ret))$ret.=',';
-			  if (!is_numeric($key)) {
-				$ret.="`$key`=".self::$__($value);
-			  } else {
-				$ret.=$value;
-			  }
-			}
-		} else {
-			$ret=$values;
-		}
-		return $ret;
-	}
-	function insert($table, $values){
-		$ret = self::$_arrayKeysToSet($values);
-		return self::$query('insert into '.$table.' set '.$ret);
-	}
-	function id(){
-		return mysql_insert_id(self::$connect_id);
-	}
-	public function update( $table, $values, $where=1 ){
-		$ret = self::$_arrayKeysToSet($values);
-		return self::$query('update '.$table.' set '.$ret.' where '.$where);
-	}
-	public function delete($table, $where){
-		return self::$query('delete from '.$table.' where '.$where);
-	}
-	function _($value) {
-		return mysql_real_escape_string($value, self::$connect_id);
-	}
-	function __($value) {
-		return '"'.self::$_($value).'"';
-	}
-
-	public function error(){
-		$langcharset = 'utf-8';
-		echo "<HTML>\n";
-		echo "<HEAD>\n";
-		echo "<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=".$langcharset."\">\n";
-		echo "<TITLE>MySQL Debugging</TITLE>\n";
-		echo "</HEAD>\n";
-		echo "<div style=\"border:1px dotted #000000; font-size:11px; font-family:tahoma,verdana,arial; background-color:#f3f3f3; color:#A73C3C; margin:5px; padding:5px;\">";
-		echo "<b><font style=\"color:#666666;\">MySQL Debugging</font></b><br /><br />";
-		echo "<li><b>SQL.q :</b> <font style=\"color:#666666;\">".self::$sql."</font></li>";
-		echo "<li><b>MySQL.e :</b> <font style=\"color:#666666;\">".mysql_error(self::$connect_id)."</font></li>";
-		echo "<li><b>MySQL.e.№ :</b> <font style=\"color:#666666;\">".mysql_errno(self::$connect_id)."</font></li>";
-		echo "<li><b>PHP.v :</b> <font style=\"color:#666666;\">".phpversion()."\n</font></li>";
-		echo "<li><b>Data :</b> <font style=\"color:#666666;\">".date("d.m.Y H:i")."\n</font></li>";
-		echo "<li><b>Script :</b> <font style=\"color:#666666;\">".getenv("REQUEST_URI")."</font></li>";
-		echo "<li><b>Refer :</b> <font style=\"color:#666666;\">".getenv("HTTP_REFERER")."</li></div>";
-		echo "</BODY>\n";
-		echo "</HTML>";
-		exit();
-	}
-}*/
-

@@ -3,7 +3,7 @@
 // Делаем из массива подобие stdClass'а, чтоб потом обращаться к переменным этого класса
 // как к переменным, а не элементам массива
 class Registry {
-	private $data = array();
+	public $data = array();
 
 	// Конструктор сразу забивает массив
     function __construct ($data = array()) {

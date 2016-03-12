@@ -12,8 +12,12 @@ class Controller extends Singleton {
 
     private $assets = array();
 
+    public $user = NULL;
+
     function __construct () {
 		$this->viewsPath = APP.'views/'; // Определяем папку с views
+
+        $this->user = new User();
 	}
 
     public function render ($target, $variables = array(), $additionalAssets = array()) {

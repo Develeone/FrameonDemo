@@ -3,24 +3,31 @@
     <div class="row">
         <div class="col-md-offset-2 col-md-8 page-heading">
             <h1>Регистрация пользователя</h1>
-            <div class="alert alert-warning" role="alert">Эта функция предназначена только для администратора сайта!</div>
+            <?php
+                if (is_array($errors))
+                    foreach ($errors as $error) {
+            ?>
+                <div class="alert alert-danger" role="alert"><?= $error ?></div>
+            <?php
+                    }
+            ?>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-offset-2 col-md-8">
-            <form role="form" method="POST" action="/login" class="form-horizontal">
+            <form role="form" method="POST" action="/register" class="form-horizontal">
                 <div class="form-group">
                     <label for="email-input" class="col-sm-2 control-label">Логин</label>
                     <div class="col-sm-10">
-                        <input type="text" class="form-control" id="email-input" name="login" placeholder="Логин">
+                        <input type="text" class="form-control" id="email-input" name="login" placeholder="Логин" value="<?=$login?>">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="email-input" class="col-sm-2 control-label">Email</label>
                     <div class="col-sm-10">
-                        <input type="email" class="form-control" id="email-input" name="email" placeholder="Email">
+                        <input type="email" class="form-control" id="email-input" name="email" placeholder="Email" value="<?=$email?>">
                     </div>
                 </div>
 
@@ -42,7 +49,7 @@
                     <div class="col-sm-offset-2 col-sm-10">
                         <div class="checkbox">
                             <label>
-                                <input type="checkbox" name="remember"> Разрешить отправлять мне уведомления о новостях и продуктах
+                                <input type="checkbox" name="allow_notifying" checked> Разрешить отправлять мне уведомления о новостях и продуктах
                             </label>
                         </div>
                     </div>
