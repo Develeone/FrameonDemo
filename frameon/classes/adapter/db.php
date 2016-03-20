@@ -4,6 +4,7 @@ class SqlSelectBuilder {
     public $what = '';
     public $table = '';
     public $where = array();
+    public $limit = '';
 
     public function __construct () {
         $this->what = func_get_args();
@@ -57,7 +58,7 @@ class SqlSelectBuilder {
     }
 
     public function one () {
-        Die("Требуется доработка функции, заменить [0] на LIMIT");
+        $this->limit = "1";
         $data = DB::runSqlSelectBuilder($this);
         return $data[0];
     }
@@ -188,7 +189,7 @@ class DB
 	}
 
     public static function runSqlSelectBuilder ($SqlBuilder) {
-        return self::_select($SqlBuilder->what, $SqlBuilder->table, $SqlBuilder->where);
+        return self::_select($SqlBuilder->what, $SqlBuilder->table, $SqlBuilder->where, $SqlBuilder->limit);
     }
 
     public static function runSqlInsertBuilder ($SqlBuilder) {
@@ -203,7 +204,7 @@ class DB
         return new SqlInsertBuilder(func_get_args());
     }
 
-    public function _select ($what, $from, $where = null) {
+    public function _select ($what, $from, $where = null, $limit = null) {
         $what_placeholder = ($what === "*" || $what === "COUNT(*)") ? '?p' : '?f';
 
         if ($where == null)

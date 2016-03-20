@@ -1,6 +1,7 @@
 <?php
 // TODO: при auth обновлять значения полей
 class User extends Registry {
+    public $id = 0;
     public $login = '';
     public $password = '';
     public $password_hashed = '';
@@ -25,6 +26,18 @@ class User extends Registry {
             ->count();
 
         if ($result) {
+            $result = DB::select()
+                ->from(Config::get()->db->users_table)
+                ->where("login", $this->login)
+                ->where("password", $this->password_hashed)
+                ->one();
+
+            $this->id = $result->id;
+            $this->email = $result->email;
+            $this->confirmed = $result->confirmed;
+            $this->u_type = $result->u_type;
+            $this->allow_notifying = $result->allow_notifying;
+
             session_start();
             $_SESSION['login'] = $this->login;
             $_SESSION['password'] = $this->password;
@@ -70,7 +83,6 @@ class User extends Registry {
         session_start();
         $_SESSION['login'] = $this->login;
         $_SESSION['password'] = $this->password;
-
         return true;
     }
 

@@ -81,9 +81,15 @@
                             <a href="#">Контакты</a>
                         </li>
 
-                        <li class="uk-parent<?= get_called_class() == "UserController" ? " uk-active" : "" ?>">
-                            <a href="/login">Вход</a>
-                        </li>
+                        <?php if (!$this->user->check()) {?>
+                            <li class="uk-parent<?= get_called_class() == "UserController" ? " uk-active" : "" ?>">
+                                <a href="/login">Вход</a>
+                            </li>
+                        <?php } else { ?>
+                            <li class="uk-parent<?= get_called_class() == "UserController" ? " uk-active" : "" ?>">
+                                <a href="/personal"><?= $this->user->login ?></a>
+                            </li>
+                        <?php } ?>
                     </ul>
                 </div>
             </div>

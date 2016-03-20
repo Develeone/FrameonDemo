@@ -2,7 +2,6 @@
 // TODO припилить защиту от подборов паролей, разрешая только по 5 попыток логина в 15 минут
 class UserController extends Controller {
     function ShowLoginForm() {
-        $this->user = new User();
         if ($this->user->check()) {
             header('Location:/personal');
         }

@@ -2,7 +2,7 @@
 <div class="container">
     <div class="row">
         <div class="col-md-offset-2 col-md-8 page-heading">
-            <h1>Войти в панель управления</h1>
+            <h1>Войти на сайт</h1>
             <?php if ($error) echo "<div class=\"alert alert-danger\" role=\"alert\">Логин или пароль неверны!</div>"; ?>
         </div>
     </div>
