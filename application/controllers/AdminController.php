@@ -9,8 +9,21 @@ class AdminController extends Controller {
         $this->render('fullpage@admin/index');
     }
 
-    function ShowEditCataloguePage ($category = 0) {
+    function ShowEditCataloguePage ($categoryId = 0) {
+        $catalogue = new Catalogue();
+        $category = $catalogue->GetCategoryById($categoryId);
+        $category->id = $categoryId;
 
-        $this->render('fullpage@admin/editCatalogue', array("categories" => array()));
+        $this->render('fullpage@admin/editCatalogue', array("category" => $category));
+    }
+
+    function PostEditCataloguePage ($categoryId = 0) {
+        $catalogue = new Catalogue();
+        $catalogue->Create($categoryId, $_POST["name"], $_POST["description"]);
+
+        $category = $catalogue->GetCategoryById($categoryId);
+        $category->id = $categoryId;
+
+        $this->render('fullpage@admin/editCatalogue', array("category" => $category));
     }
 }

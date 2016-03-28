@@ -24,15 +24,21 @@ class SqlSelectBuilder {
             throw new Except('Ошибка в контроллере '.get_called_class().'. Отсутствует метод '.$methodName.'!');
         else
 
-            if ($methodName == "_where")
-                $arguments = array($arguments[0], "=", $arguments[1]);
-
         return call_user_func_array(array($this, $methodName), $arguments);
     }
 
     public function from ($table_name) {
         $this->table = $table_name;
         return $this;
+    }
+
+    public function where () {
+        $arguments = func_get_args();
+
+        if (func_num_args() == 2)
+            $arguments = array($arguments[0], "=", $arguments[1]);
+
+        return call_user_func_array(array($this, "_where"), $arguments);
     }
 
     public function _where ($field, $compare, $value) {
@@ -86,52 +92,18 @@ class SqlInsertBuilder {
 }
 
 /**
- * @author col.shrapnel@gmail.com
- * @link http://phpfaq.ru/safemysql
- * 
- * Safe and convenient way to handle SQL queries utilizing type-hinted placeholders.
- * 
- * Key features
- * - set of helper functions to get the desired result right out of query, like in PEAR::DB
- * - conditional query building using parse() method to build queries of whatever comlexity, 
- *   while keeping extra safety of placeholders
- * - type-hinted placeholders
- * 
- *  Type-hinted placeholders are great because 
- * - safe, as any other [properly implemented] placeholders
- * - no need for manual escaping or binding, makes the code extra DRY
- * - allows support for non-standard types such as identifier or array, which saves A LOT of pain in the back.
- * 
  * Supported placeholders at the moment are:
  * 
  * ?s ("string")  - strings (also DATE, FLOAT and DECIMAL)
- * ?i ("integer") - the name says it all 
- * ?n ("name")    - identifiers (table and field names) 
+ * ?f ("names array") - comma-separated names
+ * ?w ("where")   - "where" statement for array of params
+ * ?i ("integer") - the name says it all
+ * ?n ("name")    - identifiers (table and field names)
  * ?a ("array")   - complex placeholder for IN() operator  (substituted with string of 'a','b','c' format, without parentesis)
  * ?u ("update")  - complex placeholder for SET operator (substituted with string of `field`='value',`field`='value' format)
  * and
  * ?p ("parsed") - special type placeholder, for inserting already parsed statements without any processing, to avoid double parsing.
- * 
- * Connection:
  *
- * $db = new SafeMySQL(); // with default settings
- * 
- * $opts = array(
- *		'user'    => 'user',
- *		'pass'    => 'pass',
- *		'db'      => 'db',
- *		'charset' => 'latin1'
- * );
- * $db = new SafeMySQL($opts); // with some of the default settings overwritten
- * 
- * Alternatively, you can just pass an existing mysqli instance that will be used to run queries 
- * instead of creating a new connection.
- * Excellent choice for migration!
- * 
- * $db = new SafeMySQL(['mysqli' => $mysqli]);
- * 
- * Some examples:
- * 
  * $name = $db->getOne('SELECT name FROM table WHERE id = ?i',$_GET['id']);
  * $data = $db->getInd('id','SELECT * FROM ?n WHERE id IN ?a','table', array(1,2));
  * $data = $db->getAll("SELECT * FROM ?n WHERE mod=?s LIMIT ?i",$table,$mod,$limit);
@@ -204,13 +176,16 @@ class DB
         return new SqlInsertBuilder(func_get_args());
     }
 
-    public function _select ($what, $from, $where = null, $limit = null) {
+    public function _select ($what, $from, $where = '', $limit = '') {
         $what_placeholder = ($what === "*" || $what === "COUNT(*)") ? '?p' : '?f';
 
-        if ($where == null)
-            return self::getAll('SELECT '.$what_placeholder.' FROM ?n', $what, $from);
-        else
-            return self::getAll('SELECT '.$what_placeholder.' FROM ?n WHERE ?w', $what, $from, $where);
+        if ($where != '')
+            $where = self::parse('WHERE ?w', $where);
+
+        if ($limit != '')
+            $limit = self::parse('LIMIT ?i', $limit);
+
+        return self::getAll('SELECT '.$what_placeholder.' FROM ?n ?p ?p', $what, $from, $where, $limit);
     }
 
     public function _insert ($what, $table) {
@@ -640,7 +615,7 @@ class DB
 		{
 			return 'NULL';
 		}
-		if(!is_numeric($value))
+		if (!is_numeric($value))
 		{
 			self::error("Integer (?i) placeholder expects numeric value, ".gettype($value)." given");
 			return FALSE;
@@ -715,7 +690,7 @@ class DB
 	{
 		if (!is_array($data))
 		{
-			self::error("Value for IN (?w) placeholder should be array");
+			self::error("Value for WHERE (?w) placeholder should be array");
 			return;
 		}
 		if (!$data)

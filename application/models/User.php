@@ -1,5 +1,5 @@
 <?php
-// TODO: при auth обновлять значения полей
+
 class User extends Registry {
     public $id = 0;
     public $login = '';

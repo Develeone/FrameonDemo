@@ -5,9 +5,9 @@ Router::set("GET",      "/",                                    "IndexController
 
 
 // Catalogue
-Router::set("GET",      "/parts",                               "PartsCatalogueController.ShowMainPage");
-Router::set("GET",      "/parts/{category}",                    "PartsCatalogueController.ShowCategoryPage");
-Router::set("GET",      "/parts/{category}/{manufacturer}",     "PartsCatalogueController.ShowCategoryPage");
+Router::set("GET",      "/parts",                               "CatalogueController.ShowMainPage");
+Router::set("GET",      "/parts/{category}",                    "CatalogueController.ShowCategoryPage");
+Router::set("GET",      "/parts/{category}/{manufacturer}",     "CatalogueController.ShowCategoryPage");
 
 
 // Users
@@ -25,3 +25,5 @@ Router::set("GET",      "/logout",                              "UserController.
 Router::set("GET",      "/admin",                               "AdminController.ShowAdminPanel");
 Router::set("GET",      "/admin/editCatalogue",                 "AdminController.ShowEditCataloguePage");
 Router::set("GET",      "/admin/editCatalogue/{category}",      "AdminController.ShowEditCataloguePage");
+Router::set("POST",     "/admin/editCatalogue",                 "AdminController.PostEditCataloguePage");
+Router::set("POST",     "/admin/editCatalogue/{category}",      "AdminController.PostEditCataloguePage");
